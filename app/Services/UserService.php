@@ -38,9 +38,13 @@ class UserService
 
 
     private function getFromCash($userID){
+        $email = Redis::get("user:$userID:email");
+        if(!$email){
+            return null;
+        }
         return [
             'id' => $userID,
-            'email' => Redis::get("user:$userID:email"),
+            'email' => $email,
             'name' => Redis::get("user:$userID:name")
         ];
 
