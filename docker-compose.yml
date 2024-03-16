@@ -1,0 +1,92 @@
+services:
+    laravel:
+        container_name: "lb_app_laravel"
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.3
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: lb_app
+
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
+
+        volumes:
+            - '.:/var/www/html'
+            - './nginx/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf'
+
+        networks:
+            - lb_app
+        depends_on:
+            - mysql
+
+
+    mysql:
+        image: 'mysql:8.0.33'
+        container_name: "lb_app_mysql"
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        volumes:
+            - './data/:/var/lib/mysql'
+            - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+        networks:
+            - lb_app
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-p${DB_PASSWORD}'
+            retries: 3
+            timeout: 5s
+
+    webserver:
+            image: nginx:stable-bullseye
+            container_name: 'lb_app_webserver'
+            ports:
+            - "80:8080"
+            - "443:443"
+            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+            networks:
+            - lb_app
+            volumes:
+            - '.:/var/html/www'
+            - './nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template'
+
+            depends_on:
+                - laravel
+
+            environment:
+                NGINX_ENVSUBST_OUTPUT_DIR: "/etc/nginx"
+                VITE_PORT: ${VITE_PORT:-5173}
+    redis:
+        image: redis:7
+        container_name: "lb_app_redis"
+        networks:
+            - lb_app
+
+    phpmyadimn:
+        image: phpmyadmin
+        container_name: "lb_app_phpmyadmin"
+        ports:
+            - "${PHPMYADMIN_PORT:-8090}:80"
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: "${DB_USERNAME}"
+            PMA_PASSWORD: "${DB_PASSWORD}"
+        depends_on:
+            - mysql
+        networks:
+            - lb_app
+
+networks:
+    lb_app:

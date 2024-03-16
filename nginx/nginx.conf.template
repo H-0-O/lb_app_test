@@ -1,0 +1,65 @@
+events {}
+
+
+
+
+http {
+
+    include       mime.types;
+
+    upstream php_con {
+        server laravel;
+    }
+    upstream vite {
+        server laravel:${VITE_PORT};
+    }
+
+    server {
+
+        listen 8080;
+
+        listen 443;
+        
+        # ssl_certificate  /etc/...;
+        # ssl_certificate_key
+
+
+        server_name example.com;
+        root /var/www/html/;
+
+        location / {
+            # try_files $uri $uri/?$query_string;
+            # gzip_static on;
+            proxy_pass http://php_con;
+            proxy_set_header      Host $host;
+            proxy_set_header      Upgrade $http_upgrade;
+            proxy_set_header      Connection $connection;
+            proxy_set_header      X-Real-IP $remote_addr;
+            proxy_set_header      X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header      X-Forwarded-Proto $http_x_forwarded_proto;
+            proxy_set_header      X-Forwarded-Port http_x_forwarded_port;
+            proxy_set_header      Proxy "";
+        }
+
+    }
+
+
+
+    server {
+        listen ${VITE_PORT};
+
+        location / {
+            # add_header 'Access-Control-Allow-Origin' *;
+            proxy_pass http://vite;
+            proxy_set_header      Host $host;
+            proxy_set_header      Upgrade $http_upgrade;
+            proxy_set_header      Connection "upgrade";
+            proxy_set_header      X-Real-IP $remote_addr;
+            proxy_set_header      X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header      X-Forwarded-Proto $http_x_forwarded_proto;
+            proxy_set_header      X-Forwarded-Port $http_x_forwarded_port;
+            proxy_set_header      Proxy "";
+        }
+    }
+
+}
