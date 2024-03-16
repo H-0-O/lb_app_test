@@ -6,7 +6,7 @@
 - set `DB_HOST` to `mysql` 
 - set `REDIS_HOST` to `redis`
 - you can set `PHPMYADMIN_PORT` to specify the port , the default is `8090`
-
+- by default port of your laravel app is `80` but you can change it by `APP_PORT`
 
 
 # installation
