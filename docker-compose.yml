@@ -2,21 +2,21 @@ services:
     laravel:
         container_name: "lb_app_laravel"
         build:
-            context: ./vendor/laravel/sail/runtimes/8.3
+            context: ./php/8.3/
             dockerfile: Dockerfile
             args:
-                WWWGROUP: '${WWWGROUP}'
+                WWWGROUP: '${WWWGROUP-1000}'
         image: lb_app
 
         environment:
-            WWWUSER: '${WWWUSER}'
+            WWWUSER: '${WWWUSER-1000}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
 
         volumes:
-            - '.:/var/www/html'
+            - ./:/var/www/html
             - './nginx/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf'
 
         networks:
@@ -30,14 +30,15 @@ services:
         container_name: "lb_app_mysql"
         environment:
             MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ROOT_HOST: '%'
+#            MYSQL_ROOT_HOST: '%'
             MYSQL_DATABASE: '${DB_DATABASE}'
-            MYSQL_USER: '${DB_USERNAME}'
-            MYSQL_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+#            MYSQL_USER: '${DB_USERNAME}'
+#            MYSQL_PASSWORD: '${DB_PASSWORD}'
+#            MYSQL_ALLOW_EMPTY_PASSWORD: 1
         volumes:
-            - './data/:/var/lib/mysql'
-            - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - type: volume
+              target: /var/lib/mysql
+              source: lb_mysql_data
         networks:
             - lb_app
         healthcheck:
@@ -59,7 +60,7 @@ services:
             networks:
             - lb_app
             volumes:
-            - '.:/var/html/www'
+            - ./:/var/html/www
             - './nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template'
 
             depends_on:
@@ -90,3 +91,8 @@ services:
 
 networks:
     lb_app:
+
+
+volumes:
+    lb_mysql_data:
+    lb_app_dir:
